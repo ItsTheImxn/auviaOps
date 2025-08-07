@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><title>AuviaOps Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>AuviaOps Flight Management</h1>
+  <h2>Add Flight</h2>
+  <form id="addForm">
+    <input placeholder="Flight No" id="flightNo"><br>
+    <input placeholder="From (IATA)" id="from"><br>
+    <input placeholder="To (IATA)" id="to"><br>
+    <input type="time" placeholder="Dep Time" id="dep"><br>
+    <input type="time" placeholder="Arr Time" id="arr"><br>
+    <input placeholder="Aircraft Type" id="aircraft"><br>
+    <input type="number" placeholder="Seats" id="seats"><br>
+    <input type="number" placeholder="Price (RM)" id="price"><br>
+    <button type="submit">Add</button>
+  </form>
+  <h2>Existing Flights</h2>
+  <table border="1">
+    <thead><tr><th>#</th><th>Flight</th><th>From→To</th><th>Times</th><th>Aircraft</th><th>Seats</th><th>Price</th><th>Actions</th></tr></thead>
+    <tbody id="flightTable"></tbody>
+  </table>
+
+<script>
+async function load() {
+  const res = await fetch('/api/flights');
+  const list = await res.json();
+  const tb = document.getElementById('flightTable');
+  tb.innerHTML = '';
+  list.forEach((f,i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i+1}</td>
+      <td>${f.flightNo}</td>
+      <td>${f.from}→${f.to}</td>
+      <td>${f.dep} - ${f.arr}</td>
+      <td>${f.aircraft}</td>
+      <td>${f.seats}</td>
+      <td>RM${f.price}</td>
+      <td>
+        <button onclick="edit(${i})">✏️</button>
+        <button onclick="del(${i})">🗑️</button>
+      </td>`;
+    tb.appendChild(tr);
+  });
+}
+async function edit(i){
+  const f = prompt("Submit JSON flight data to replace:", JSON.stringify((await fetch('/api/flights').then(r=>r.json()))[i]));
+  if(!f) return;
+  await fetch('/api/flights/edit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({index:i,flight:JSON.parse(f)})});
+  load();
+}
+async function del(i){
+  if(confirm("Delete flight?")) {
+    await fetch('/api/flights/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({index:i})});
+    load();
+  }
+}
+document.getElementById('addForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const data = {
+    flightNo:document.getElementById('flightNo').value,
+    from:document.getElementById('from').value,
+    to:document.getElementById('to').value,
+    dep:document.getElementById('dep').value,
+    arr:document.getElementById('arr').value,
+    aircraft:document.getElementById('aircraft').value,
+    seats:document.getElementById('seats').value,
+    price:document.getElementById('price').value
+  };
+  await fetch('/api/flights',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  load();
+});
+load();
+</script>
+</body>
+</html>
